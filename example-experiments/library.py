@@ -2,12 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, List, Tuple, Mapping, Union
 
-import turaco.complexity
-import turaco.interpret
-import turaco.parser
-import turaco.typecheck
-import turaco.util
-import turaco.syntax
+import turaco
 
 import multiprocessing
 import numpy as np
@@ -75,11 +70,6 @@ class ProgramData:
     complexities: Mapping[str, float]
 
 
-def calculate_complexity(p: turaco.syntax.Program, max_scaling: Union[float, Mapping[str, List[float]]]) -> float:
-    (a, b) = turaco.complexity.complexity_interpret_program(p, max_scaling=0)
-    (ap, bp) = turaco.complexity.complexity_interpret_program(p, max_scaling=max_scaling)
-    return (bp + a)**2
-
 def read_program(program_config: ProgramConfig) -> ProgramData:
     with open(os.path.join(_DIRNAME, program_config.program_name)) as f:
         program = turaco.parser.parse_program(f.read())
@@ -90,8 +80,14 @@ def read_program(program_config: ProgramConfig) -> ProgramData:
     complexities = {}
     all_paths = turaco.util.get_paths_of_program(program)
     for (linp, path) in all_paths:
-        col = calculate_complexity(linp, max_scaling=program_config.beta)
+        col = turaco.main.calculate_complexity(linp, max_scaling=program_config.beta)
         complexities[path] = col
+
+    # get sampling distributions
+    # path: (program.config.distribution[path] * np.sqrt(program.complexities[path] + np.log(len(paths) / args.delta)))**(2/3)
+    # delta = 0.01
+    samps = {path: 0.5 * np.sqrt(complexities[path] + np.log(len(all_paths) / 0.01))**(2/3) for path in complexities}
+    samps = {k: samps[k] / sum(samps.values()) for k in samps}
 
     return ProgramData(
         config=program_config,
@@ -121,11 +117,13 @@ def collect_datasets(program: ProgramData, n_to_sample):
             data[input_name] = [randos[i] * (d[1] - d[0]) + d[0]]
         path = []
         output = turaco.interpret.interpret_program(program.program, data, path=path)
+        output = np.array(output)
+
         path = ''.join(path)
         if n_sampled[path] >= n_to_sample:
             continue
         datasets[path].append(
-            ([data[i][0] for i in data], output[0])
+            ([data[i][0] for i in data], output)
         )
         pbar.update(1)
         left_to_sample -= 1
@@ -140,7 +138,7 @@ def write_datasets(datasets, program_name):
         X, Y = zip(*dataset)
 
         input_size = len(X[0])
-        output_size = 1
+        output_size = len(Y[0])
         X = torch.FloatTensor(np.array(X)).reshape(-1, input_size)
         Y = torch.FloatTensor(np.array(Y)).reshape(-1, output_size)
 
@@ -167,7 +165,8 @@ def read_dataset(program_name: str, path: str, n: int):
     dataset = torch.load(os.path.join(_DIRNAME, 'datasets', program_name, '{}.pt'.format(path)))
     X_train, Y_train, X_val, Y_val, X_test, Y_test = dataset
 
-    train_idx = np.random.choice(np.arange(len(X_train)), n, replace=False)
+    train_idx = np.random.choice(np.arange(len(X_train)), n, replace=True)
+
     X_train = X_train[train_idx]
     Y_train = Y_train[train_idx]
 

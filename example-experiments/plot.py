@@ -18,6 +18,8 @@ import driver
 
 import plot_utils
 
+import turaco
+
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import matplotlib.backends.backend_pdf
@@ -41,7 +43,7 @@ delta_i = 1 - (1 - delta)**(1/3)
 N_TRIALS = 10
 
 mns = list(np.arange(1, 20)) + list(np.logspace(1, 5, 10).round().astype(int))
-mns = np.logspace(1, 3, 20)
+mns = np.logspace(1, 3, 10)
 mns = sorted(np.array(list(mns)).round().astype(int))
 mns = np.array(mns)
 
@@ -55,9 +57,14 @@ def get_empirical_error(prog_name_base, n_samples, no_train=False):
     fnames = []
     procs = []
 
+    if ':' in prog_name_base:
+        prog_name_base, path_name = prog_name_base.split(':')
+    else:
+        path_name = 'all'
+
     new = False
     for i in range(N_TRIALS):
-        fname = 'data/{prog_name_base}/all/{n}/{trial}/s.loss'.format(prog_name_base=prog_name_base, n=n_samples,trial=i)
+        fname = 'data/{prog_name_base}/{path_name}/{n}/{trial}/{lname}.loss'.format(prog_name_base=prog_name_base, n=n_samples,trial=i, path_name=path_name, lname=path_name if path_name != 'all' else 's')
         fnames.append(fname)
         if os.path.exists(fname):
             losses.append(torch.load(fname))
@@ -71,8 +78,8 @@ def get_empirical_error(prog_name_base, n_samples, no_train=False):
              'train',
              '--n', str(n_samples), '--trial', str(i),
              '--lr', '5e-5', '--steps', '10000',
-            ]
-        # print(' '.join(args))
+            ] + (['--path', path_name] if path_name != 'all' else [])
+        print(' '.join(args))
         proc = subprocess.Popen(
             args,
         )
@@ -90,6 +97,7 @@ def get_empirical_error(prog_name_base, n_samples, no_train=False):
     mid = np.mean(losses)
     lower = np.std(losses) / np.sqrt(len(losses))
     upper = np.std(losses) / np.sqrt(len(losses))
+
     return mid, lower, upper
 
 def optimal_sampling(data_distribution, complexity):
@@ -177,36 +185,51 @@ def main():
     args = parser.parse_args()
 
     programs = [p.split(':')[0] for p in args.program]
-    data_dist = {
+    prog_data_dist = {
         p.split(':')[0]: (float(p.split(':')[1]) if len(p.split(':')) > 1 else 1)
         for p in args.program
     }
 
+    data_dist = {}
+
     for p in programs:
+        program = driver.read_program(p)
+        for pth in program.config.distribution:
+            data_dist['{}:{}'.format(p, pth)] = program.config.distribution[pth] * prog_data_dist[p]
+
         if os.path.exists('datasets/{p}'.format(p=p)):
             continue
         print('Generating dataset for {p}...'.format(p=p))
-        program = driver.read_program(p)
-        datasets = library.collect_datasets(program, 1000000)
+        datasets = library.collect_datasets(program, 100000)
         library.write_datasets(datasets, p)
 
     data_dist = {k: v / sum(data_dist.values()) for (k, v) in data_dist.items()}
 
-    complexity = {
-        k: float(subprocess.run(
-            [_PYTHON, '-m', 'turaco', '--program', k, 'complexity', '--input', str(np.sqrt(2))],
-            capture_output=True, text=True,
-        ).stdout.strip().split('\n')[-1])
-        for k in programs
-    }
+    # complexity = {
+    #     k: float(subprocess.run(
+    #         [_PYTHON, '-m', 'turaco', '--program', k, 'complexity', '--input', str(0.06)],
+    #         capture_output=True, text=True,
+    #     ).stdout.strip().split('\n')[-1])
+    #     for k in programs
+    # }
 
-    sc = {k: np.sqrt(v + np.log(1/delta_i)) for (k, v) in complexity.items()}
+    complexity = {}
 
-    print('Sample complexity improvements:')
-    for k in programs:
-        m_c = sc[k]
-        d_c = sc['nighttime.t']
-        print('{k}: {v:.2}x'.format(k=k, v=m_c/d_c))
+    for p in programs:
+        with open(p) as f:
+            pg = turaco.parser.parse_program(f.read())
+
+        all_paths = turaco.util.get_paths_of_program(pg)
+        for (linp, path) in all_paths:
+            col = turaco.main.calculate_complexity(linp, max_scaling=1.)
+            complexity['{}:{}'.format(p, path)] = col
+
+    # sc = {k: np.sqrt(v + np.log(1/delta_i)) for (k, v) in complexity.items()}
+    # print('Sample complexity improvements:')
+    # for k in programs:
+    #     m_c = sc[k]
+    #     d_c = sc['nighttime.t']
+    #     print('{k}: {v:.2}x'.format(k=k, v=m_c/d_c))
 
     plot_theo = not args.no_theoretical
     plot_uniform = not args.no_uniform
@@ -227,6 +250,9 @@ def main():
         #     print('effective sample complexity for {}: {}'.format(p, np.sqrt(complexity[p] + np.log(1/delta_i))))
         return
 
+    print('Computing theoretical errors...')
+    print(data_dist)
+    print(complexity)
     dist_errs = get_theoretical_and_empirical_errors(optimal_sampling, data_dist, complexity, no_train=args.no_train)
     uniform_errs = get_theoretical_and_empirical_errors(uniform_sampling, data_dist, complexity, no_train=args.no_train)
     test_errs = get_theoretical_and_empirical_errors(data_dist_sampling, data_dist, complexity, no_train=args.no_train)
@@ -254,6 +280,10 @@ def main():
             imps = frequency_mids/mids
             print('geomean improvement over frequency: {}'.format(
                 np.exp(np.mean(np.log(imps))) - 1
+            ))
+            theo_imps = np.array(test_errs[theo_idx])/np.array(dist_errs[theo_idx])
+            print('geomean improvement over frequency (theoretical): {}'.format(
+                np.exp(np.mean(np.log(theo_imps))) - 1
             ))
             print('median improvement over frequency (where ns < 70): {}'.format(
                 np.median(imps[mns < 70])
@@ -325,6 +355,26 @@ def main():
         ax2.set_yscale('log')
         plt.legend()
 
+    if True:
+        plt.figure()
+        ax = plt.gca()
+        for i, (n, es) in enumerate([
+                ('dist', dist_errs),
+                ('test', test_errs)
+        ]):
+            for (typ, fmt) in zip(es[-1][0].keys(), ['--', ':', '-.']):
+                ax.plot(
+                    [x[typ] for x in es[-2]],
+                    [x[typ][0] for x in es[-1]],
+                    label='{} {}'.format(n, typ),
+                    color='C{}'.format(i),
+                    ls=fmt,
+                )
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+        plt.legend()
+
+
     path_labels = {
         'nighttime.t': 'Nighttime',
         'twilight.t': 'Twilight',
@@ -341,26 +391,33 @@ def main():
 
         for idx, path in enumerate(sorted(data_dist.keys())[::-1]):
             data = []
-            for n in os.listdir('data/{}/all'.format(path)):
+            ogpath = path
+            if ':' in path:
+                path, ppath = path.split(':')
+            else:
+                ppath = 'all'
+            for n in os.listdir('data/{}/{}'.format(path, ppath)):
                 md = []
-                if not os.path.exists('data/{}/all/{}'.format(path, n)):
+                if not os.path.exists('data/{}/{}/{}'.format(path, ppath, n)):
                     continue
-                for t in os.listdir('data/{}/all/{}'.format(path, n)):
-                    md.append(torch.load('data/{}/all/{}/{}/s.loss'.format(path, n, t)))
+                for t in os.listdir('data/{}/{}/{}'.format(path, ppath, n)):
+                    md.append(torch.load('data/{}/{}/{}/{}/{}.loss'.format(path, ppath, n, t, 's' if ppath == 'all' else ppath)))
                 md = np.array(md)
                 data.append((int(n), np.mean(md), np.std(md) / np.sqrt(len(md))))
             xs, ys, errs = map(np.array, zip(*sorted(data)))
 
             print('path: {}, xs: {}, ys: {}, errs: {}'.format(path, xs, ys, errs))
 
-            plt.plot(xs, ys, 'o--', label=path_labels[path], color=C[idx])
-            plt.fill_between(xs, ys-errs, ys+errs, color=C[idx], alpha=0.2)
+            plt.plot(xs, ys, 'o--', label=path_labels.get(ogpath, ogpath), color=C[idx])
+            plt.fill_between(xs, ys-errs * np.sqrt(N_TRIALS), ys+errs * np.sqrt(N_TRIALS), color=C[idx], alpha=0.2)
 
             if plot_theo:
-                ax2.plot(xs, [get_theoretical_error(n, complexity[path]) for n in xs], ls=':', color=C[idx])
+                ax2.plot(xs, [get_theoretical_error(n, complexity[ogpath]) for n in xs], ls=':', color=C[idx])
 
-        plt.xscale('log')
-        plt.yscale('log')
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+        if plot_theo:
+            ax2.set_yscale('log')
 
         ax.set_xlabel('Number of Path Samples')
         ax.set_ylabel('Error')

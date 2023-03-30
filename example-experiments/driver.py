@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
-import turaco.parser
-import turaco.util
+import turaco
 import library
 import numpy as np
 import os
@@ -44,6 +43,7 @@ def do_data(args):
 
 def do_train(args):
     program = read_program(args.program)
+    n_outputs = len(program.program.outputs)
 
     if args.path:
         paths = [args.path]
@@ -53,12 +53,12 @@ def do_train(args):
     if args.sampling_type == 'optimal':
         path_weights = {
             path: (program.config.distribution[path] * np.sqrt(program.complexities[path] + np.log(len(paths) / args.delta)))**(2/3)
-            for (_, path) in paths
+            for path in paths
         }
     elif args.sampling_type == 'test':
         path_weights = {
             path: (program.config.distribution[path] * np.sqrt(program.complexities[path] + np.log(len(paths) / args.delta)))**(2/3)
-            for (_, path) in paths
+            for path in paths
         }
         raise NotImplementedError()
     else:
@@ -71,7 +71,6 @@ def do_train(args):
         assert n > 0, p
 
     for path in paths:
-        path = path[1]
         job = library.TrainingJob(
             training_config=library.TrainingConfig(
                 batch_size=args.batch_size,
@@ -82,7 +81,7 @@ def do_train(args):
             nn_config=library.NNConfig(
                 input_size=len(program.program.inputs),
                 hidden_size=args.hidden_size,
-                output_size=1,
+                output_size=n_outputs,
                 depth=args.depth,
                 activation=library.Activation.RELU,
             ),
