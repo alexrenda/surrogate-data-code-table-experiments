@@ -7,7 +7,6 @@ import turaco
 import multiprocessing
 import numpy as np
 import os
-import random
 import torch
 import tqdm.auto as tqdm
 
@@ -53,6 +52,7 @@ class TrainingJob:
     task_name: str
     job_name: str
     save: bool
+    trial: int
 
 @dataclass
 class ProgramConfig:
@@ -101,7 +101,7 @@ def collect_datasets(program: ProgramData, n_to_sample):
     datasets = {
         path[1]: []
         for path in program.paths
-        if path not in program.config.illegal_paths
+        if path[1] not in program.config.illegal_paths
     }
     left_to_sample = n_to_sample*len(datasets)
     pbar = tqdm.tqdm(total=left_to_sample)
@@ -109,8 +109,10 @@ def collect_datasets(program: ProgramData, n_to_sample):
 
     domains = program.config.domains
 
+    rand = np.random.RandomState(0)
+
     while left_to_sample:
-        randos = np.random.rand(len(domains))
+        randos = rand.rand(len(domains))
         data = {}
         for i, input_name in enumerate(program.program.inputs):
             d = domains[input_name]
@@ -159,13 +161,18 @@ def write_datasets(datasets, program_name):
             os.path.join(_DIRNAME, 'datasets', program_name, '{}.pt'.format(path)),
         )
 
-def read_dataset(program_name: str, path: str, n: int):
+def read_dataset(program_name: str, path: str, n: int, trial: int = None):
     if path == '':
         path = 'singleton'
     dataset = torch.load(os.path.join(_DIRNAME, 'datasets', program_name, '{}.pt'.format(path)))
     X_train, Y_train, X_val, Y_val, X_test, Y_test = dataset
 
-    train_idx = np.random.choice(np.arange(len(X_train)), n, replace=True)
+    if trial is not None:
+        rand = np.random.RandomState(trial)
+    else:
+        rand = np.random.RandomState()
+
+    train_idx = rand.choice(np.arange(len(X_train)), n, replace=True)
 
     X_train = X_train[train_idx]
     Y_train = Y_train[train_idx]
@@ -191,9 +198,11 @@ def make_nn(nn_config):
     return torch.nn.Sequential(*layers).to(device)
 
 def train_surrogate(training_job):
-    dataset = read_dataset(training_job.dataset.program_name, training_job.dataset.path, training_job.dataset.n)
+    dataset = read_dataset(training_job.dataset.program_name, training_job.dataset.path, training_job.dataset.n, training_job.trial)
 
     X_train, Y_train, X_eval, Y_eval, X_test, Y_test = dataset
+
+    torch.manual_seed(training_job.trial)
 
     dl = torch.utils.data.DataLoader(
         torch.utils.data.TensorDataset(X_train, Y_train),

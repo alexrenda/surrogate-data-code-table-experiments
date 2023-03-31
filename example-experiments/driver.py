@@ -93,6 +93,7 @@ def do_train(args):
             task_name=(args.program, 'all' if args.path is None else args.path, args.n, args.trial),
             job_name=path if path else 's',
             save=True,
+            trial=args.trial,
         )
         surr, loss = library.train_surrogate(job)
         if not args.quiet:
@@ -119,7 +120,7 @@ def main():
     train_parser.add_argument('--steps', type=int, default=1000)
     train_parser.add_argument('--lr', type=float, default=1e-3)
     train_parser.add_argument('--batch-size', type=int, default=128)
-    train_parser.add_argument('--trial', default='1')
+    train_parser.add_argument('--trial', default=1, type=int)
     train_parser.add_argument('--sampling-type', choices=['optimal', 'test'], default='optimal')
 
     args = parser.parse_args()

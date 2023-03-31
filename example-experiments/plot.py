@@ -79,7 +79,7 @@ def get_empirical_error(prog_name_base, n_samples, no_train=False):
              '--n', str(n_samples), '--trial', str(i),
              '--lr', '5e-5', '--steps', '10000',
             ] + (['--path', path_name] if path_name != 'all' else [])
-        print(' '.join(args))
+
         proc = subprocess.Popen(
             args,
         )
@@ -236,6 +236,7 @@ def main():
     plot_optimal = not args.no_optimal
     plot_frequency = not args.no_frequency
 
+
     if args.print_dist:
         for (name, typ) in {'optimal': optimal_sampling,
                             'data': data_dist_sampling}.items():
@@ -285,12 +286,22 @@ def main():
             print('geomean improvement over frequency (theoretical): {}'.format(
                 np.exp(np.mean(np.log(theo_imps))) - 1
             ))
-            print('median improvement over frequency (where ns < 70): {}'.format(
-                np.median(imps[mns < 70])
+
+            uniform_mids = np.array([d[0] for d in uniform_errs[2]])
+            imps = uniform_mids/mids
+            print('geomean improvement over uniform: {}'.format(
+                np.exp(np.mean(np.log(imps))) - 1
             ))
-            print('median improvement over frequency (where ns >= 70): {}'.format(
-                np.median(imps[mns >= 70])
+            theo_imps = np.array(uniform_errs[theo_idx])/np.array(dist_errs[theo_idx])
+            print('geomean improvement over uniform (theoretical): {}'.format(
+                np.exp(np.mean(np.log(theo_imps))) - 1
             ))
+            # print('median improvement over frequency (where ns < 70): {}'.format(
+            #     np.median(imps[mns < 70])
+            # ))
+            # print('median improvement over frequency (where ns >= 70): {}'.format(
+            #     np.median(imps[mns >= 70])
+            # ))
 
         if plot_frequency:
             mids, lows, ups = map(np.array, zip(*test_errs[emp_idx]))

@@ -4,7 +4,6 @@ fun(t, disptminus, dispt, disptplus, M, C, V, M23, C23, V23) {
   // seemingly this program does not benefit from splitting, because the Lipschitz constant of the second half is so high
 
   t0 = 0.6;
-  dt = 1; // 0.0024;
   dt = 0.0024;
 
   disptminus = disptminus * dt * dt;
