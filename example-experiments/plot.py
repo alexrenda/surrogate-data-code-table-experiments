@@ -31,6 +31,37 @@ C = np.array([
     (0, 158, 115),
     (240, 228, 66),
     (0, 114, 178),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
+    (100, 100, 100),
 ]) / 255
 
 _PYTHON = sys.executable
@@ -44,6 +75,8 @@ N_TRIALS = 10
 
 mns = list(np.arange(1, 20)) + list(np.logspace(1, 5, 10).round().astype(int))
 mns = np.logspace(1, 3, 10)
+if any('jmeint' in s for s in sys.argv):
+    mns = np.logspace(3, 5, 10)
 mns = sorted(np.array(list(mns)).round().astype(int))
 mns = np.array(mns)
 
@@ -80,6 +113,8 @@ def get_empirical_error(prog_name_base, n_samples, no_train=False):
              '--lr', '5e-5', '--steps', '10000',
             ] + (['--path', path_name] if path_name != 'all' else [])
 
+        print(' '.join(args))
+
         proc = subprocess.Popen(
             args,
         )
@@ -93,15 +128,94 @@ def get_empirical_error(prog_name_base, n_samples, no_train=False):
             if not no_train:
                 raise
 
+    if len(losses) == 0:
+        return None
+
     losses.pop(np.argmax(losses))
     mid = np.mean(losses)
     lower = np.std(losses) / np.sqrt(len(losses))
     upper = np.std(losses) / np.sqrt(len(losses))
 
+    if False:
+        dname = 'data/{prog_name_base}/{path_name}'.format(prog_name_base=prog_name_base, n=n_samples,trial=i, path_name=path_name, lname=path_name if path_name != 'all' else 's')
+        ns = os.listdir(dname)
+        ns = [int(n) for n in ns if n.isdigit()]
+        ns = sorted(ns)
+
+        xs = []
+        ys = []
+
+        for n in ns:
+            d2name = 'data/{prog_name_base}/{path_name}/{n}'.format(prog_name_base=prog_name_base, n=n, path_name=path_name)
+            trials = os.listdir(d2name)
+            trials = [int(t) for t in trials if t.isdigit()]
+            trials = sorted(trials)
+
+            for t in trials:
+                fname = 'data/{prog_name_base}/{path_name}/{n}/{trial}/{lname}.loss'.format(prog_name_base=prog_name_base, n=n,trial=t, path_name=path_name, lname=path_name if path_name != 'all' else 's')
+                loss = torch.load(fname)
+                xs.append(n)
+                ys.append(loss)
+
+        import scipy.stats
+        # xs, ys show are linear on a log-log plot
+        xs = np.array(xs)
+        ys = np.array(ys)
+
+        # savitzky_golay
+        # yhat = scipy.signal.savgol_filter(ys, 50, 3)
+
+        median_filter_size = 51
+
+        # left and right pad with the first and last values
+        x_pad = np.concatenate([np.ones(median_filter_size//2) * xs[0], xs, np.ones(median_filter_size//2) * xs[-1]])
+        y_pad = np.concatenate([np.ones(median_filter_size//2) * ys[0], ys, np.ones(median_filter_size//2) * ys[-1]])
+
+        # median filter
+        yhat = np.array([np.median(y_pad[i:i+median_filter_size]) for i in range(len(y_pad) - median_filter_size + 1)])
+
+        target_x = n_samples
+        x_idx = np.argmin(np.abs(xs - target_x))
+        target_y = ys[x_idx]
+        mid = target_y
+
+
+        # # interpolate to get value at n_samples
+        # f = scipy.interpolate.interp1d(xs, yhat, kind='cubic')
+        # mid = f(n_samples)
+        # return mid, 0, 0
+
+
+
+        # # curve fit
+        # def myExpFunc(x, a, b):
+        #     return a * np.power(x, b)
+
+        # popt, pcov = scipy.optimize.curve_fit(myExpFunc, xs, ys)
+
+        # # plot
+        # plt.plot(xs, ys, 'o', label='data')
+        # plt.plot(xs, myExpFunc(xs, *popt), 'r-', label='fit: a=%5.3f, b=%5.3f' % tuple(popt))
+        # plt.xlabel('sample size')
+        # plt.ylabel('loss')
+
+        # plt.xscale('log')
+        # plt.yscale('log')
+
+        # plt.legend()
+        # plt.show()
+
+        # import sys; sys.exit(1)
+
+
+        # return y, err, err
+
+
     return mid, lower, upper
 
 def optimal_sampling(data_distribution, complexity):
     n = len(data_distribution)
+    print(data_distribution)
     weights = {
         k: (data_distribution[k] * np.sqrt(complexity[k] + np.log(1/delta_i)))**(2/3)
         for k in data_distribution
@@ -156,9 +270,9 @@ def get_theoretical_and_empirical_errors(sampling_method, data_dist, complexitie
 
     empirical_expectation_error = [
         (
-            sum(data_dist[k] * v[0] for (k, v) in d.items()),
-            sum(data_dist[k] * v[1] for (k, v) in d.items()),
-            sum(data_dist[k] * v[2] for (k, v) in d.items()),
+            sum(data_dist[k] * v[0] for (k, v) in d.items() if v is not None),
+            sum(data_dist[k] * v[1] for (k, v) in d.items() if v is not None),
+            sum(data_dist[k] * v[2] for (k, v) in d.items() if v is not None),
         )
         for d in per_stratum_empirical_error
     ]
@@ -221,6 +335,8 @@ def main():
 
         all_paths = turaco.util.get_paths_of_program(pg)
         for (linp, path) in all_paths:
+            if path not in program.config.distribution:
+                continue
             col = turaco.main.calculate_complexity(linp, max_scaling=1.)
             complexity['{}:{}'.format(p, path)] = col
 
@@ -346,7 +462,7 @@ def main():
             for (typ, fmt) in zip(es[-1][0].keys(), ['--', ':', '-.']):
                 ax.plot(
                     mns,
-                    [x[typ][0] for x in es[-1]],
+                    [x[typ][0] for x in es[-1] if x is not None and x[typ] is not None],
                     label='{} {}'.format(n, typ),
                     color='C{}'.format(i),
                     ls=fmt,
@@ -365,6 +481,7 @@ def main():
         ax.set_yscale('log')
         ax2.set_yscale('log')
         plt.legend()
+
 
     if True:
         plt.figure()

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, List, Tuple, Mapping, Union
+import subprocess
 
 import turaco
 
@@ -11,6 +12,11 @@ import torch
 import tqdm.auto as tqdm
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
+if device == 'cuda':
+    if os.getpid() % 2 == 0:
+        torch.cuda.set_device(0)
+    else:
+        torch.cuda.set_device(1)
 
 _DIRNAME = os.path.dirname(os.path.abspath(os.path.realpath(__file__)))
 
@@ -102,6 +108,7 @@ def collect_datasets(program: ProgramData, n_to_sample):
         path[1]: []
         for path in program.paths
         if path[1] not in program.config.illegal_paths
+        and path[1] in program.config.distribution
     }
     left_to_sample = n_to_sample*len(datasets)
     pbar = tqdm.tqdm(total=left_to_sample)
@@ -111,23 +118,35 @@ def collect_datasets(program: ProgramData, n_to_sample):
 
     rand = np.random.RandomState(0)
 
+    # import collections
+    # path_random_sampled = collections.Counter()
+
     while left_to_sample:
         randos = rand.rand(len(domains))
         data = {}
-        for i, input_name in enumerate(program.program.inputs):
+        for i, (input_name, shape) in enumerate(program.program.inputs.items()):
             d = domains[input_name]
-            data[input_name] = [randos[i] * (d[1] - d[0]) + d[0]]
+
+            if shape and shape[0] > 1:
+                zz = rand.rand(*shape)
+            else:
+                zz = np.array([randos[i]])
+            data[input_name] = (zz * (d[1] - d[0]) + d[0]).tolist()
+
         path = []
         output = turaco.interpret.interpret_program(program.program, data, path=path)
         output = np.array(output)
 
         path = ''.join(path)
+        # path_random_sampled[path] += 1
+
         if n_sampled[path] >= n_to_sample:
             continue
         datasets[path].append(
             ([data[i][0] for i in data], output)
         )
         pbar.update(1)
+        # pbar.set_description(str(path_random_sampled))
         left_to_sample -= 1
         n_sampled[path] += 1
 
@@ -204,8 +223,11 @@ def train_surrogate(training_job):
 
     torch.manual_seed(training_job.trial)
 
+    ds = torch.utils.data.TensorDataset(X_train, Y_train)
+    ds = torch.utils.data.ConcatDataset([ds] * training_job.training_config.batch_size)
+
     dl = torch.utils.data.DataLoader(
-        torch.utils.data.TensorDataset(X_train, Y_train),
+        ds,
         batch_size=training_job.training_config.batch_size,
         shuffle=True,
         pin_memory=device == 'cuda',
@@ -264,5 +286,12 @@ def train_surrogate(training_job):
         os.makedirs(os.path.dirname(fname), exist_ok=True)
         torch.save(surr, f'{fname}.pt')
         torch.save(running_loss_mean, f'{fname}.loss')
+
+        try:
+            subprocess.run(['gsutil', 'cp', f'{fname}.pt', f'{fname}.loss', f'gs://surrogate-data/example-experiments/{tn}/{jn}'], check=True)
+            print(f'Copied {fname} to GCS at gs://surrogate-data/example-experiments/{tn}/{jn}')
+        except subprocess.CalledProcessError:
+            print('Failed to upload to GCS')
+            pass
 
     return surr, running_loss_mean

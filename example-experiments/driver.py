@@ -5,11 +5,18 @@ import turaco
 import library
 import numpy as np
 import os
+import pickle
 
 _DIRNAME = os.path.dirname(os.path.abspath(os.path.realpath(__file__)))
 
 def read_program(program):
     pname = os.path.join(_DIRNAME, program)
+
+    cache_fname = os.path.join(_DIRNAME, 'cache', program + '.pkl')
+    if os.path.exists(cache_fname):
+        with open(cache_fname, 'rb') as f:
+            return pickle.load(f)
+
     if os.path.exists(pname + '.yaml'):
         import yaml
         with open(pname + '.yaml') as f:
@@ -33,7 +40,15 @@ def read_program(program):
             distribution={path: 1/len(paths) for (_, path) in paths}
         )
 
-    return library.read_program(program_config)
+    res = library.read_program(program_config)
+
+    os.makedirs(os.path.dirname(cache_fname), exist_ok=True)
+    cache_fname_tmp = cache_fname + '.tmp'
+    with open(cache_fname_tmp, 'wb') as f:
+        pickle.dump(res, f)
+    os.rename(cache_fname_tmp, cache_fname)
+
+    return res
 
 
 def do_data(args):
@@ -95,6 +110,7 @@ def do_train(args):
             save=True,
             trial=args.trial,
         )
+
         surr, loss = library.train_surrogate(job)
         if not args.quiet:
             print('{:5s}: Test Prob {:5.3f} | Train Prob {:5.3f} | Loss {:5.3f}'.format(
@@ -103,6 +119,7 @@ def do_train(args):
                 path_fracs[path],
                 loss,
             ))
+
 
 def main():
     parser = argparse.ArgumentParser()
