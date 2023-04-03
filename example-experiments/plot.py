@@ -69,26 +69,32 @@ CURR_DIR = os.path.dirname(os.path.abspath(os.path.realpath(__file__)))
 PAR_DIR = os.path.dirname(CURR_DIR)
 
 delta = 0.1
-delta_i = 1 - (1 - delta)**(1/3)
 
-N_TRIALS = 10
+N_TRIALS = 5
 
 mns = list(np.arange(1, 20)) + list(np.logspace(1, 5, 10).round().astype(int))
 mns = np.logspace(1, 3, 10)
 if any('jmeint' in s for s in sys.argv):
     mns = np.logspace(3, 5, 10)
+
 mns = sorted(np.array(list(mns)).round().astype(int))
 mns = np.array(mns)
 
-def get_theoretical_error(n_samples, complexity):
-    n_samples = int(np.ceil(n_samples))
+def get_theoretical_error(n_samples, complexity, c):
+    # n_samples = int(np.ceil(n_samples))
     C = 1
-    return np.sqrt(C * (complexity + np.log(1/delta_i)) / n_samples)
+    return np.sqrt(C * (complexity - np.log(1 - (1 - delta)**(1/c))) / n_samples)
 
 def get_empirical_error(prog_name_base, n_samples, no_train=False):
     losses = []
     fnames = []
     procs = []
+
+    # if n_samples == 309:
+    #     n_samples = 300
+
+    # if n_samples == 185:
+    #     n_samples = 180
 
     if ':' in prog_name_base:
         prog_name_base, path_name = prog_name_base.split(':')
@@ -131,7 +137,8 @@ def get_empirical_error(prog_name_base, n_samples, no_train=False):
     if len(losses) == 0:
         return None
 
-    losses.pop(np.argmax(losses))
+    # losses.pop(np.argmax(losses))
+
     mid = np.mean(losses)
     lower = np.std(losses) / np.sqrt(len(losses))
     upper = np.std(losses) / np.sqrt(len(losses))
@@ -216,8 +223,9 @@ def get_empirical_error(prog_name_base, n_samples, no_train=False):
 def optimal_sampling(data_distribution, complexity):
     n = len(data_distribution)
     print(data_distribution)
+    c = len(data_distribution)
     weights = {
-        k: (data_distribution[k] * np.sqrt(complexity[k] + np.log(1/delta_i)))**(2/3)
+        k: (data_distribution[k] * np.sqrt(complexity[k] - np.log(1 - (1 - delta)**(1/c))))**(2/3)
         for k in data_distribution
     }
 
@@ -247,6 +255,10 @@ def get_real_counts(sampling_method, data_dist, complexities):
 def get_theoretical_and_empirical_errors(sampling_method, data_dist, complexities, no_train=False):
     per_stratum_prob = sampling_method(data_dist, complexities)
 
+    print(data_dist)
+    print(complexities)
+    print(per_stratum_prob)
+
     per_stratum_counts = [{
         k: int(np.ceil(v * n))
         for (k, v) in per_stratum_prob.items()
@@ -254,7 +266,7 @@ def get_theoretical_and_empirical_errors(sampling_method, data_dist, complexitie
     ]
 
     per_stratum_theoretical_error = [{
-        k: get_theoretical_error(v * n, complexities[k])
+        k: get_theoretical_error(v * n, complexities[k], len(per_stratum_prob))
         for (k, v) in per_stratum_prob.items()
     } for n in mns]
 
@@ -296,6 +308,7 @@ def main():
     parser.add_argument('--no-frequency', action='store_true')
     parser.add_argument('--no-analysis', action='store_true')
     parser.add_argument('--no-per-path', action='store_true')
+    parser.add_argument('--no-show', action='store_true')
     args = parser.parse_args()
 
     programs = [p.split(':')[0] for p in args.program]
@@ -406,7 +419,7 @@ def main():
             uniform_mids = np.array([d[0] for d in uniform_errs[2]])
             imps = uniform_mids/mids
             print('geomean improvement over uniform: {}'.format(
-                np.exp(np.mean(np.log(imps))) - 1
+                np.exp(np.mean(np.log(imps)[1:])) - 1
             ))
             theo_imps = np.array(uniform_errs[theo_idx])/np.array(dist_errs[theo_idx])
             print('geomean improvement over uniform (theoretical): {}'.format(
@@ -466,6 +479,7 @@ def main():
                     label='{} {}'.format(n, typ),
                     color='C{}'.format(i),
                     ls=fmt,
+                    marker='o',
                 )
 
                 ax2.plot(
@@ -475,6 +489,7 @@ def main():
                     color='C{}'.format(i),
                     ls=fmt,
                     alpha=0.5,
+                    marker='o',
                 )
 
         ax.set_xscale('log')
@@ -488,7 +503,8 @@ def main():
         ax = plt.gca()
         for i, (n, es) in enumerate([
                 ('dist', dist_errs),
-                ('test', test_errs)
+                ('test', test_errs),
+                ('uniform', uniform_errs),
         ]):
             for (typ, fmt) in zip(es[-1][0].keys(), ['--', ':', '-.']):
                 ax.plot(
@@ -497,6 +513,7 @@ def main():
                     label='{} {}'.format(n, typ),
                     color='C{}'.format(i),
                     ls=fmt,
+                    marker='o',
                 )
         ax.set_xscale('log')
         ax.set_yscale('log')
@@ -534,8 +551,6 @@ def main():
                 data.append((int(n), np.mean(md), np.std(md) / np.sqrt(len(md))))
             xs, ys, errs = map(np.array, zip(*sorted(data)))
 
-            print('path: {}, xs: {}, ys: {}, errs: {}'.format(path, xs, ys, errs))
-
             plt.plot(xs, ys, 'o--', label=path_labels.get(ogpath, ogpath), color=C[idx])
             plt.fill_between(xs, ys-errs * np.sqrt(N_TRIALS), ys+errs * np.sqrt(N_TRIALS), color=C[idx], alpha=0.2)
 
@@ -559,7 +574,8 @@ def main():
 
 
 
-    plt.show()
+    if not args.no_show:
+        plt.show()
 
 if __name__ == '__main__':
     main()

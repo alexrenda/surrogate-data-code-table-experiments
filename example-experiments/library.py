@@ -118,8 +118,8 @@ def collect_datasets(program: ProgramData, n_to_sample):
 
     rand = np.random.RandomState(0)
 
-    # import collections
-    # path_random_sampled = collections.Counter()
+    import collections
+    path_random_sampled = collections.Counter()
 
     while left_to_sample:
         randos = rand.rand(len(domains))
@@ -138,7 +138,7 @@ def collect_datasets(program: ProgramData, n_to_sample):
         output = np.array(output)
 
         path = ''.join(path)
-        # path_random_sampled[path] += 1
+        path_random_sampled[path] += 1
 
         if n_sampled[path] >= n_to_sample:
             continue
@@ -146,7 +146,7 @@ def collect_datasets(program: ProgramData, n_to_sample):
             ([data[i][0] for i in data], output)
         )
         pbar.update(1)
-        # pbar.set_description(str(path_random_sampled))
+        pbar.set_description(str(path_random_sampled))
         left_to_sample -= 1
         n_sampled[path] += 1
 
@@ -287,11 +287,11 @@ def train_surrogate(training_job):
         torch.save(surr, f'{fname}.pt')
         torch.save(running_loss_mean, f'{fname}.loss')
 
-        try:
-            subprocess.run(['gsutil', 'cp', f'{fname}.pt', f'{fname}.loss', f'gs://surrogate-data/example-experiments/{tn}/{jn}'], check=True)
-            print(f'Copied {fname} to GCS at gs://surrogate-data/example-experiments/{tn}/{jn}')
-        except subprocess.CalledProcessError:
-            print('Failed to upload to GCS')
-            pass
+        # try:
+        #     subprocess.run(['gsutil', 'cp', f'{fname}.pt', f'{fname}.loss', f'gs://surrogate-data/example-experiments/{tn}/{jn}'], check=True)
+        #     print(f'Copied {fname} to GCS at gs://surrogate-data/example-experiments/{tn}/{jn}')
+        # except subprocess.CalledProcessError:
+        #     print('Failed to upload to GCS')
+        #     pass
 
     return surr, running_loss_mean

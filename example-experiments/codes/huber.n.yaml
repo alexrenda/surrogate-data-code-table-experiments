@@ -1,0 +1,13 @@
+program: codes/huber.n
+illegal_paths: []
+
+domains:
+        x: [-1, 1]
+        delta: [0, 1]
+
+beta: 1.0
+
+distribution:
+  ll: 1
+  lr: 2.5
+  r: 2.5

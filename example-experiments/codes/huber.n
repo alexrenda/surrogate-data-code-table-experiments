@@ -1,0 +1,15 @@
+fun(x, delta) {
+  x = x * 2;
+
+  if (x > -delta) {
+    if (x < delta) {
+      res = x*x/2;
+    } else {
+      res = delta * (x - delta/2);
+    }
+  } else {
+      res = delta * (-x - delta/2);
+  }
+
+  return res;
+}

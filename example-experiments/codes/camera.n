@@ -1,0 +1,49 @@
+// fun(y, contrast) {
+//   // y = exp(log{>=0.01}(y) * recip{>=1}(gamma));
+
+//   b = 2 - exp(log{>=2}(2) * contrast/100);
+//   a = 2 - 2*b;
+
+//   if (y > 0.5) {
+//     y = 1-y;
+//     y = a*y*y + b*y;
+//     y = 1-y;
+//   } else {
+//     y = a*y*y + b*y;
+//   }
+
+//   y = y * 255 + 0.5;
+//   y = y / 255;
+
+//   return y;
+// }
+
+
+
+// OLD:
+fun(y, contrast, gamma) {
+  y = y {>=0} ^ {>=0} (recip{>=1}(gamma));
+
+  b = 2 - exp(log{>=2}(2) * contrast/100);
+  a = 2 - 2*b;
+
+  if (y > 0.5) {
+    y = 1-y;
+    y = a*y*y + b*y;
+    y = 1-y;
+  } else {
+    y = a*y*y + b*y;
+  }
+
+  // y = y * 255 + 0.5;
+
+  // if (y < 0) {
+  //   y = 0;
+  // } else {
+  //   if (y > 255) { y = 255; } else { skip; }
+  // }
+
+  // y = y / 255;
+
+  return y;
+}

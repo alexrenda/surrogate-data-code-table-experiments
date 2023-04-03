@@ -43,7 +43,7 @@ def read_program(program):
     res = library.read_program(program_config)
 
     os.makedirs(os.path.dirname(cache_fname), exist_ok=True)
-    cache_fname_tmp = cache_fname + '.tmp'
+    cache_fname_tmp = cache_fname + '.tmp' + str(os.getpid())
     with open(cache_fname_tmp, 'wb') as f:
         pickle.dump(res, f)
     os.rename(cache_fname_tmp, cache_fname)
@@ -113,7 +113,7 @@ def do_train(args):
 
         surr, loss = library.train_surrogate(job)
         if not args.quiet:
-            print('{:5s}: Test Prob {:5.3f} | Train Prob {:5.3f} | Loss {:5.3f}'.format(
+            print('{:5s}: Test Prob {:5.3f} | Train Prob {:5.3f} | Loss {:5.3e}'.format(
                 path,
                 program.config.distribution[path],
                 path_fracs[path],
