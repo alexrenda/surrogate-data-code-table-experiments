@@ -1,0 +1,1 @@
+command = "python ../../turaco.py --no-dce --program {filename} complexity --input-scale 1"

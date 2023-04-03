@@ -19,7 +19,8 @@ class UnaryOperator(Enum):
     LOG = 5
     EXP = 6
     SQRT = 7
-    INV = 8
+    RECIP = 8
+    RECIP1M = 9
 
 @dataclass
 class Variable:
@@ -32,15 +33,26 @@ class Value:
 @dataclass
 class Binop:
     op: BinaryOperator
-    epsilon: float
     left: 'Expr'
+    right: 'Expr'
+
+@dataclass
+class Pow:
+    left: 'Expr'
+    left_constraint: float
+    right_constraint: float
     right: 'Expr'
 
 @dataclass
 class Unop:
     op: UnaryOperator
-    epsilon: float
-    gamma: float
+    expr: 'Expr'
+
+@dataclass
+class ConstrainedUnop:
+    op: UnaryOperator
+    constraint: float
+    around: float
     expr: 'Expr'
 
 @dataclass
@@ -50,9 +62,9 @@ class Vector:
 @dataclass
 class VectorAccess:
     expr: 'Expr'
-    index: int
+    index: Union[str, int]
 
-Expr = Union[Variable, Value, Binop, Unop, Vector, VectorAccess]
+Expr = Union[Variable, Value, Binop, Pow, Unop, Vector, VectorAccess, ConstrainedUnop]
 
 @dataclass
 class Sequence:
@@ -62,19 +74,20 @@ class Sequence:
 @dataclass
 class IfThen:
     condition: Expr
-    epsilon: float
-    gamma: float
     left: 'Statement'
     right: 'Statement'
 
 @dataclass
-class Repeat:
-    n: int
+class Iterate:
+    name: str
+    start: Union[str, int]
+    end: Union[str, int]
     s: 'Statement'
 
 @dataclass
 class Assignment:
     name: str
+    indices: List[Union[str, int]]
     value: Expr
 
 @dataclass
@@ -85,10 +98,10 @@ class Print:
 class Skip:
     pass
 
-Statement = Union[Sequence, IfThen, Repeat, Assignment, Skip, Print]
+Statement = Union[Sequence, IfThen, Assignment, Skip, Print, Iterate]
 
 @dataclass
 class Program:
-    inputs: Mapping[str, int]
+    inputs: Mapping[str, List[int]]
     statement: Statement
-    output: Expr
+    outputs: List[Expr]

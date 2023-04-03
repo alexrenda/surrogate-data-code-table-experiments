@@ -1,0 +1,4 @@
+fun (x) {
+  skip;
+  return x;
+}
