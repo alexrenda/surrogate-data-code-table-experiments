@@ -1,0 +1,12 @@
+program: synthetic/analysis_overcomplicates.n
+illegal_paths: []
+
+domains:
+        x: [0, 1]
+        y: [-1, 1]
+
+beta: 1.0
+
+distribution:
+  l: 0.6
+  r: 0.4

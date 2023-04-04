@@ -1,0 +1,14 @@
+program: synthetic/frequency_matters.n
+illegal_paths: []
+
+domains:
+        x: [0, 1]
+        y: [-1, 1]
+
+beta: 1.0
+
+distribution:
+  l: 0.1
+  rl: 0.1
+  rrl: 0.1
+  rrr: 0.7

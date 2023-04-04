@@ -1,0 +1,46 @@
+fun(pe_x, pe_y, pc_x, pc_y, xTarget_in, yTarget_in) {
+
+  diff_pe_pc_x = pe_x - pc_x;
+  diff_pe_pc_y = pe_y - pc_y;
+  diff_tgt_pc_x = xTarget_in - pc_x;
+  diff_tgt_pc_y = yTarget_in - pc_y;
+
+  sqi = diff_pe_pc_x * diff_pe_pc_x + diff_pe_pc_y * diff_pe_pc_y;
+  print(sqi);
+  len_diff_pe_pc = sqrt{>=0.0008}(sqi);
+
+  sqi = diff_tgt_pc_x * diff_tgt_pc_x + diff_tgt_pc_y * diff_tgt_pc_y;
+  len_diff_tgt_pc = sqrt{>=0.0008}(sqi);
+
+  print(len_diff_tgt_pc);
+
+  a_x = diff_pe_pc_x  * recip{>=0.0282842712474619}(len_diff_pe_pc);
+  a_y = diff_pe_pc_y  * recip{>=0.0282842712474619}(len_diff_pe_pc);
+  b_x = diff_tgt_pc_x * recip{>=0.0282842712474619}(len_diff_tgt_pc);
+  b_y = diff_tgt_pc_y * recip{>=0.0282842712474619}(len_diff_tgt_pc);
+
+  a_dot_b = a_x * b_x + a_y * b_y;
+
+  if (a_dot_b > 1.) {
+          a_dot_b = 1;
+          angle = 0;
+  } else {
+    if (a_dot_b < -1) {
+       a_dot_b = -1;
+       angle = -pi;
+    } else {
+       angle = acos(a_dot_b) * (180 / pi);
+    }
+  }
+
+  print(a_dot_b);
+  // angle = acos(a_dot_b) * (180 / pi);
+
+  // Determine angle direction
+  direction = a_x * b_y - a_y * b_x;
+  if (direction < 0) {
+    angle = -angle;
+  } else { skip; }
+
+  return angle;
+}

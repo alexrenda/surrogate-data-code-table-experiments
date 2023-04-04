@@ -1,4 +1,6 @@
 fun (rate, time, sptprice, strike, otype, NofXd1, NofXd2) {
+    // COMMENT
+
     FutureValueX = strike * ( exp( -(rate)*(time) ) );
     if (otype > 0) {
         OptionPrice = (sptprice * NofXd1) - (FutureValueX * NofXd2);

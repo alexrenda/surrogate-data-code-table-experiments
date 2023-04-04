@@ -1,0 +1,11 @@
+fun(x) {
+  if (x < 0.00001) {
+    x = x * 0.00001;
+    res = 1 + 0.5 * x;
+  } else {
+    print(x);
+    // res = exp(log{>=1.00001}(1+x)*0.5);
+    res = sqrt{>=1,4}(1+x);
+  }
+  return res;
+}

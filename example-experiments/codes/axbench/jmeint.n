@@ -1,0 +1,176 @@
+fun(v00, v01, v02, v10, v11, v12, v20, v21, v22, u00, u01, u02, u10, u11, u12, u20, u21, u22) {
+    // comment
+
+    e1[3]; e2[3]; n1[3]; n2[3]; d[3];
+    isect1[2];
+    isect2[2];
+
+    // Compute plane equation of triangle (v0,v1,v2)
+    e1[0] = v10 - v00;
+    e1[1] = v11 - v01;
+    e1[2] = v12 - v02;
+
+    e2[0] = v20 - v00;
+    e2[1] = v21 - v01;
+    e2[2] = v22 - v02;
+
+    // Cross product: n1 = e1 x e2
+    n1[0] = (e1[1] * e2[2]) - (e1[2] * e2[1]);
+    n1[1] = (e1[2] * e2[0]) - (e1[0] * e2[2]);
+    n1[2] = (e1[0] * e2[1]) - (e1[1] * e2[0]);
+
+    // Plane equation 1: n1.X + d1 = 0
+    d1 = -(n1[0] * v00 + n1[1] * v01 + n1[2] * v02);
+
+    // Put u0,u1,u2 into plane equation 1 to compute signed distances to the plane
+    du0 = (n1[0] * u00 + n1[1] * u01 + n1[2] * u02) + d1;
+    du1 = (n1[0] * u10 + n1[1] * u11 + n1[2] * u12) + d1;
+    du2 = (n1[0] * u20 + n1[1] * u21 + n1[2] * u22) + d1;
+
+    du0du1 = du0 * du1;
+    du0du2 = du0 * du2;
+
+    // Compute plane equation of triangle (u0,u1,u2)
+    e1[0] = u10 - u00;
+    e1[1] = u11 - u01;
+    e1[2] = u12 - u02;
+
+    e2[0] = u20 - u00;
+    e2[1] = u21 - u01;
+    e2[2] = u22 - u02;
+
+    // Cross product: n2 = e1 x e2
+    n2[0] = (e1[1] * e2[2]) - (e1[2] * e2[1]);
+    n2[1] = (e1[2] * e2[0]) - (e1[0] * e2[2]);
+    n2[2] = (e1[0] * e2[1]) - (e1[1] * e2[0]);
+
+    // Plane equation 2: n2.X + d2 = 0
+    d2 = -(n2[0] * u00 + n2[1] * u01 + n2[2] * u02);
+
+    // Put v0,v1,v2 into plane equation 2 to compute signed distances to the plane
+    dv0 = (n2[0] * v00 + n2[1] * v01 + n2[2] * v02) + d2;
+    dv1 = (n2[0] * v10 + n2[1] * v11 + n2[2] * v12) + d2;
+    dv2 = (n2[0] * v20 + n2[1] * v21 + n2[2] * v22) + d2;
+
+    dv0dv1 = dv0 * dv1;
+    dv0dv2 = dv0 * dv2;
+
+    d[0] = (n1[1] * n2[2]) - (n1[2] * n2[1]);
+    d[1] = (n1[2] * n2[0]) - (n1[0] * n2[2]);
+    d[2] = (n1[0] * n2[1]) - (n1[1] * n2[0]);
+
+    // Compute and index to the largest component of d
+    index = 0;
+
+    if (d[0] > 0) { max = d[0]; } else { max = -d[0]; }
+    if (d[0] > 0) {  bb = d[0]; } else {  bb = -d[0]; }
+    if (d[0] > 0) {  cc = d[0]; } else {  cc = -d[0]; }
+
+    if (bb > max) {
+            max = bb;
+            index = 1;
+    } else { skip; }
+
+    if (cc > max) {
+            max = cc;
+            vp0 = v02;
+            vp1 = v12;
+            vp2 = v22;
+            up0 = u02;
+            up1 = u12;
+            up2 = u22;
+    } else { if (index > 0) {
+            vp0 = v01;
+            vp1 = v11;
+            vp2 = v21;
+            up0 = u01;
+            up1 = u11;
+            up2 = u21;
+    } else {
+            vp0 = v00;
+            vp1 = v10;
+            vp2 = v20;
+            up0 = u00;
+            up1 = u10;
+            up2 = u20;
+    } }
+
+    vv0 = vp0; vv1 = vp1; vv2 = vp2; d0 = dv0; d1 = dv1; d2 = dv2; d0d1 = dv0dv1; d0d2 = dv0dv2; abc[3]; x0x1[2];
+    is_coplanar_1 = 0;
+
+    if (d0d1 > 0.0) {
+            // d0d2 <= 0 --> i.e. d0, d1 are on the same side, d2 on the other or on the plane
+            abc[0] = vv2;
+            abc[1] = (vv0 - vv2) * d2;
+            abc[2] = (vv1 - vv2) * d2;
+            x0x1[0] = d2 - d0;
+            x0x1[1] = d2 - d1;
+    } else { if (d0d2 > 0.0) {
+            // d0d1 <= 0
+            abc[0] = vv1;
+            abc[1] = (vv0 - vv1) * d1;
+            abc[2] = (vv2 - vv1) * d1;
+            x0x1[0] = d1 - d0;
+            x0x1[1] = d1 - d2;
+    } else { if (d1 * d2 > 0.0 ) { // || d0 != 0.0f
+            // d0d1 <= 0 or d0 != 0
+            abc[0] = vv0;
+            abc[1] = (vv1 - vv0) * d0;
+            abc[2] = (vv2 - vv0) * d0;
+            x0x1[0] = d0 - d1;
+            x0x1[1] = d0 - d2;
+    } else { if (d1 > 0.0) {
+            abc[0] = vv1;
+            abc[1] = (vv0 - vv1) * d1;
+            abc[2] = (vv2 - vv1) * d1;
+            x0x1[0] = d1 - d0;
+            x0x1[1] = d1 - d2;
+    } else { if (d2 > 0.0) {
+            abc[0] = vv2;
+            abc[1] = (vv0 - vv2) * d2;
+            abc[2] = (vv1 - vv2) * d2;
+            x0x1[0] = d2 - d0;
+            x0x1[1] = d2 - d1;
+    } else { is_coplanar_1 = 1; }}}}}
+
+
+    vv0 = up0; vv1 = up1; vv2 = up2; d0 = du0; d1 = du1; d2 = du2; d0d1 = du0du1; d0d2 = du0du2; def[3]; y0y1[2];
+    is_coplanar_2 = 0;
+
+    if (d0d1 > 0.0) {
+            // d0d2 <= 0 --> i.e. d0, d1 are on the same side, d2 on the other or on the plane
+            def[0] = vv2;
+            def[1] = (vv0 - vv2) * d2;
+            def[2] = (vv1 - vv2) * d2;
+            y0y1[0] = d2 - d0;
+            y0y1[1] = d2 - d1;
+    } else { if (d0d2 > 0.0) {
+            // d0d1 <= 0
+            def[0] = vv1;
+            def[1] = (vv0 - vv1) * d1;
+            def[2] = (vv2 - vv1) * d1;
+            y0y1[0] = d1 - d0;
+            y0y1[1] = d1 - d2;
+    } else { if (d1 * d2 > 0.0 ) { // || d0 != 0.0f
+            // d0d1 <= 0 or d0 != 0
+            def[0] = vv0;
+            def[1] = (vv1 - vv0) * d0;
+            def[2] = (vv2 - vv0) * d0;
+            y0y1[0] = d0 - d1;
+            y0y1[1] = d0 - d2;
+    } else { if (d1 > 0.0) {
+            def[0] = vv1;
+            def[1] = (vv0 - vv1) * d1;
+            def[2] = (vv2 - vv1) * d1;
+            y0y1[0] = d1 - d0;
+            y0y1[1] = d1 - d2;
+    } else { if (d2 > 0.0) {
+            def[0] = vv2;
+            def[1] = (vv0 - vv2) * d2;
+            def[2] = (vv1 - vv2) * d2;
+            y0y1[0] = d2 - d0;
+            y0y1[1] = d2 - d1;
+    } else { is_coplanar_1 = 1; }}}}}
+
+    return abc[0], abc[1], abc[2], x0x1[0], x0x1[1], def[0], def[1], def[2], y0y1[0], y0y1[1], is_coplanar_1, is_coplanar_2;
+}
