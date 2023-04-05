@@ -8,6 +8,6 @@ domains:
 beta: 1.0
 
 distribution:
-  ll: 1
-  lr: 2.5
-  r: 2.5
+  ll: 20
+  lr: 10
+  r: 10

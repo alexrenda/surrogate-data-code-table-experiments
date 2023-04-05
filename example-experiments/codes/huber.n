@@ -1,15 +1,13 @@
 fun(x, delta) {
-  x = x * 2;
-
   if (x > -delta) {
     if (x < delta) {
-      res = x*x/2;
+      res = x*x / 2  + delta * delta / 2;
     } else {
-      res = delta * (x - delta/2);
+      res = x * delta;
     }
   } else {
-      res = delta * (-x - delta/2);
+      res = -x * delta;
   }
 
-  return res;
+  return delta - res;
 }

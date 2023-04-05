@@ -1,0 +1,15 @@
+program: codes/kelvinToXY.n
+illegal_paths: []
+
+domains:
+        x: [-1, 1]
+        y: [-1, 1]
+        invKiloK: [0, 1]
+        T: [0, 0.7] # really, to 0.5
+
+beta: 1.0
+
+distribution:
+  ll: 125555
+  lrl: 100000
+  rrr: 56313.6666666667

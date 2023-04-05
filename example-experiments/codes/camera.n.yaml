@@ -2,12 +2,9 @@ program: codes/camera.n
 illegal_paths: []
 
 domains:
-  minRaw: [0, 1]
-  maxRaw: [1, 2]
-  i: [0, 2]
   y: [0, 1]
-  gamma: [0, 1]
-  contrast: [0, 100]
+  gamma: [0.682, 1]
+  contrast: [0, 1]
 
 beta: 1.0
 

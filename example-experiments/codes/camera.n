@@ -1,9 +1,10 @@
 fun(y, contrast, gamma) {
   // https://graphics.stanford.edu/papers/fcam/html/_demosaic_8cpp_source.html
+  gamma = gamma * 2.2;
 
-  y = y {>=0} ^ {>=0} (recip{>=1}(gamma));
+  y = y {>=0} ^ {>=0} recip{>=1.5}(gamma);
 
-  b = 2 - exp(log{>=2}(2) * contrast/100);
+  b = 2 - exp(log{>=2}(2) * contrast);
   a = 2 - 2*b;
 
   if (y > 0.5) {
