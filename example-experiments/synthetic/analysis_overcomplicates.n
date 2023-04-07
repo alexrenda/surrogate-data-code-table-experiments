@@ -1,9 +1,8 @@
 fun(x, y) {
-  if (x > 0.6) {
-    y = y * recip{>=0.6}(x);
-  } else {
-    y = y / 2;
-  }
-
-  return y;
+ if (x > 0.51) {
+  y = y * recip{>=0.51}(x);
+ } else {
+  y = y / 2;
+ }
+ return y;
 }

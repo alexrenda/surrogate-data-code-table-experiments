@@ -1,0 +1,8 @@
+fun(x, y) {
+ if (x < 0.5) {
+  res = sin(5 * y);
+ } else {
+  res = sin(2 * y);
+ }
+ return res;
+}

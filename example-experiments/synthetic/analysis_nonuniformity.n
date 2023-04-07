@@ -1,0 +1,9 @@
+fun(x, y) {
+ if (x > 0.5) {
+  y = sin(10*y) / 1000;
+ } else {
+  y = sin(y);
+ }
+
+ return y;
+}

@@ -1,0 +1,16 @@
+fun(a, b, c, s) {
+  if (b * b - a * c > 10) {
+    if (b > 0) {
+    }
+  }
+}
+
+(let ((a 3) (b 7/2))
+  (let ((discr (- (* b b) (* (* a c) 4))))
+    (if (> (- (* b b) (* a c)) 10)
+      (if (> b 0)
+        (/ (* c 2) (- (- b) (sqrt discr)))
+        (if (< b 0)
+          (/ (+ (- b) (sqrt discr)) (* a 2))
+          (/ (+ (- b) (sqrt discr)) (* a 2))))
+      (/ (+ (- b) (sqrt discr)) (* a 2)))))

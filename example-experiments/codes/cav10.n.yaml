@@ -1,0 +1,11 @@
+program: codes/cav10.n
+illegal_paths: []
+
+domains:
+        x: [0, 1]
+
+beta: 1.0
+
+distribution:
+  l: 0.1
+  r: 0.9

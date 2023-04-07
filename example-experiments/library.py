@@ -163,6 +163,10 @@ def write_datasets(datasets, program_name):
         X = torch.FloatTensor(np.array(X)).reshape(-1, input_size)
         Y = torch.FloatTensor(np.array(Y)).reshape(-1, output_size)
 
+        # normalize X and Y to [-1, 1]
+        # X = 2 * (X - X.min(dim
+        # Y = 2 * (Y - Y.min()) / (Y.max() - Y.min()) - 1
+
         train_split_idx = int(len(X) * 0.7)
         val_split_idx = int(len(X) * 0.8)
 

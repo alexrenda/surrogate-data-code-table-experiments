@@ -1,0 +1,67 @@
+fun
+brightPixels = cdf[b-1] - cdf[b-21]; // top 20 buckets
+targetBrightPixels = cdf[b-1]/50;
+maxSaturatedPixels = cdf[b-1]/200;
+saturatedPixels = cdf[b-1] - cdf[b-6]; // top 5 buckets
+
+// how much should I change brightness by
+adjustment = 1.0f;
+
+if (saturatedPixels > maxSaturatedPixels) {
+    // first don't let things saturate too much
+    adjustment = 1.0f - ((saturatedPixels - maxSaturatedPixels))/cdf[b-1];
+} else if (brightPixels < targetBrightPixels) {
+    // increase brightness to try and hit the desired number of well exposed pixels
+    l = b-11;
+    while (brightPixels < targetBrightPixels && l > 0) {
+        brightPixels += cdf[l];
+        brightPixels -= cdf[l-1];
+        l--;
+    }
+
+    // that level is supposed to be at b-11;
+    adjustment = float(b-11+1)/(l+1);
+} else {
+    // we're not oversaturated, and we have enough bright pixels. Do nothing.
+}
+
+if (adjustment > 4.0) adjustment = 4.0;
+if (adjustment < 1/16.0f) adjustment = 1/16.0f;
+
+brightness = f.gain() * f.exposure();
+desiredBrightness = brightness * adjustment;
+exposure;
+gain;
+
+// Apply the smoothness constraint
+shotBrightness = s->gain * s->exposure;
+desiredBrightness = shotBrightness * smoothness + desiredBrightness * (1-smoothness);
+
+// whats the largest we can raise exposure without negatively
+// impacting frame-rate or introducing handshake. We use 1/30s
+exposureKnee = 33333;
+
+if (desiredBrightness > exposureKnee) {
+    exposure = exposureKnee;
+    gain = desiredBrightness / exposureKnee;
+} else {
+    gain = 1.0f;
+    exposure = desiredBrightness;
+}
+
+// Clamp the gain at max, and try to make up for it with exposure
+if (gain > maxGain) {
+    exposure = desiredBrightness/maxGain;
+    gain = maxGain;
+}
+
+// Finally, clamp the exposure at max
+if (exposure > maxExposure) {
+    exposure = maxExposure;
+}
+
+return exposure, gain;
+}
+
+s->exposure  = exposure;
+s->gain      = gain;
