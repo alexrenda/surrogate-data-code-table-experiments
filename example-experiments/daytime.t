@@ -1,5 +1,6 @@
-fun (sunPosition[1], emission[1]) {
-  ambient := sunPosition
-  emission := mul(emission, sunPosition)
-  res := add(ambient, emission)
-} return res;
+fun (sunPosition, emission) {
+  ambient = sunPosition;
+  emission = emission * sunPosition;
+  res = ambient + emission;
+  return res;
+}
