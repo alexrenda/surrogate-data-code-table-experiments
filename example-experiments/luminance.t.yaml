@@ -1,0 +1,13 @@
+program: luminance.t
+illegal_paths: []
+
+domains:
+        sunPosition: [-1, 1]
+        emission: [0, 1]
+
+beta: 1.0
+
+distribution:
+  ll: 0.5
+  rl: 0.1
+  rr: 0.4
