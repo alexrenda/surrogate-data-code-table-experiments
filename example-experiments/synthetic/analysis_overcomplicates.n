@@ -1,8 +1,8 @@
 fun(x, y) {
- if (x > 0.51) {
-  y = y * recip{>=0.51}(x);
+ if (x > 0.5) {
+  y = y * sin(4*x);
  } else {
-  y = y / 2;
+  y = y * 4;
  }
  return y;
 }
