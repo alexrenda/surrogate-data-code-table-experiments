@@ -5,29 +5,40 @@ import sys
 import subprocess
 import numpy as np
 
+# benchmarks = [
+#     ('luminance.t', 'Luminance'),
+#     ('codes/huber.n', 'Huber'),
+#     ('codes/axbench/blackscholes-2.n', 'BlackScholes'),
+#     ('codes/kelvinToXY.n', 'Camera'),
+#     ('codes/quake_phi_phi.n', 'EQuake'),
+#     ('codes/axbench/jmeint.n', 'Jmeint'),
+# ]
+
+
 benchmarks = [
-    ('codes/huber.n', 'Huber'),
-    ('codes/axbench/blackscholes-2.n', 'BlackScholes'),
-    ('codes/quake_phi_phi.n', 'Quake'),
-    ('codes/kelvinToXY.n', 'Camera'),
-    ('codes/axbench/jmeint.n', 'Jmeint'),
+    ('synthetic/complexity_matters.n', 'Complexity Matters'),
+    ('synthetic/frequency_matters.n', 'Frequency Matters'),
+    ('synthetic/analysis_overcomplicates.n', 'Analysis Overcomplicates'),
+    ('synthetic/analysis_nonuniformity.n', 'Analysis Nonuniformity'),
+    ('synthetic/analysis_bad.n', 'Analysis Bad'),
 ]
 
 def main():
 
 
-    # print(r'\multirow{2}{1.5cm}{\bf Benchmark} & \multirow{2}{1.5cm}{\centering\textbf{Path}} & \multirow{2}{2cm}{\centering\textbf{Complexity}} & \multirow{2}{2cm}{\centering\bf Frequency \\ Distribution} & \multirow{2}{2cm}{\centering\bf Uniform \\ Distribution} & \multirow{2}{2cm}{\centering\bf Complexity \\ Distribution} \\&&&&\\ \midrule')
+    print(r'\multirow{2}{1.5cm}{\bf Benchmark} & \multirow{2}{1.5cm}{\centering\textbf{Path}} & \multirow{2}{2cm}{\centering\textbf{Complexity}} & \multirow{2}{2cm}{\centering\bf Frequency \\ Distribution} & \multirow{2}{2cm}{\centering\bf Uniform \\ Distribution} & \multirow{2}{2cm}{\centering\bf Complexity \\ Distribution} \\&&&&\\ \midrule')
 
-    # for i, (code, name) in enumerate(benchmarks):
-    #     output = subprocess.check_output([sys.executable, 'plot.py', '--program', code, '--no-theo', '--print-table'], stderr=subprocess.DEVNULL, universal_newlines=True)
-    #     print(r'\multirow{{{}}}{{1.5cm}}{{\bf\centering {}}}'.format(len(output.splitlines()), name))
-    #     print('\n'.join('& {}'.format(line) for line in output.splitlines()))
-    #     if i != len(benchmarks) - 1:
-    #         print(r'\midrule')
+    for i, (code, name) in enumerate(benchmarks):
+        output = subprocess.check_output([sys.executable, 'plot.py', '--program', code, '--no-theo', '--print-table'], stderr=subprocess.DEVNULL, universal_newlines=True)
+        print(r'\multirow{{{}}}{{1.5cm}}{{\bf\centering {}}}'.format(len(output.splitlines()), name))
+        print('\n'.join('& {}'.format(line) for line in output.splitlines()))
+        if i != len(benchmarks) - 1:
+            print(r'\midrule')
 
-    # print(r'\bottomrule')
+    print(r'\bottomrule')
+    print('\n\n\n')
 
-    # print('\n\n\n')
+    # return
 
     data = {}
     def parse_line(text, string):
@@ -46,23 +57,23 @@ def main():
         output = subprocess.check_output([sys.executable, 'plot.py', '--program', code, '--no-theo', '--no-show'], stderr=subprocess.DEVNULL, universal_newlines=True)
 
         freq_empirical = parse_line(output, 'improvement over frequency:')
-        freq_empirical = 1/(1 + freq_empirical)  - 1
+        # freq_empirical = 1/(1 + freq_empirical)  - 1
 
         freq_theoretical = parse_line(output, 'improvement over frequency (theoretical):')
-        freq_theoretical = 1/(1 + freq_theoretical)  - 1
+        # freq_theoretical = 1/(1 + freq_theoretical)  - 1
 
         uniform_empirical = parse_line(output, 'improvement over uniform:')
-        uniform_empirical = 1/(1 + uniform_empirical)  - 1
+        # uniform_empirical = 1/(1 + uniform_empirical)  - 1
 
         uniform_theoretical = parse_line(output, 'improvement over uniform (theoretical):')
-        uniform_theoretical = 1/(1 + uniform_theoretical)  - 1
+        # uniform_theoretical = 1/(1 + uniform_theoretical)  - 1
 
         p = driver.read_program(code)
         distribution = p.config.distribution
 
         data[name] = (freq_empirical, freq_theoretical, uniform_empirical, uniform_theoretical, distribution)
 
-        print('{} & ${}$ & ${}$ & ${:+.2%}$ & ${:+.2%}$ & ${:+.2%}$ & ${:+.2%}$ \\\\'.format(name, lines_of_code, len(distribution), freq_theoretical, freq_empirical, uniform_theoretical, uniform_empirical).replace('%', r'\%'))
+        print('{} & ${}$ & ${}$ & ${:.2%}$ & ${:.2%}$ & ${:.2%}$ & ${:.2%}$ \\\\'.format(name, lines_of_code, len(distribution), freq_theoretical, freq_empirical, uniform_theoretical, uniform_empirical).replace('%', r'\%'))
 
     print(r'\midrule')
 

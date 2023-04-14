@@ -243,6 +243,14 @@ def train_surrogate(training_job):
     opt = torch.optim.Adam(surr.parameters(), lr=training_job.training_config.lr)
     criterion = get_criterion(training_job.training_config.loss)
 
+    # pbar = tqdm.tqdm(total=training_job.training_config.steps)
+    # loss_ema = 0
+    # loss_ema_beta = 0.995
+
+    # l2 regularization
+    # l2_reg = torch.nn.MSELoss(size_average=False)
+    # l2_lambda = 0.0001
+
     for i in range(training_job.training_config.steps):
         try:
             (x, y) = next(dlit)
@@ -255,8 +263,21 @@ def train_surrogate(training_job):
 
         yhat = surr(x)
         opt.zero_grad()
-        criterion(yhat, y).backward()
+        loss = criterion(yhat, y)
+
+        # l2 regularization
+        # l2_loss = 0
+        # for param in surr.parameters():
+        #     l2_loss += l2_reg(param, torch.zeros_like(param))
+        # loss += l2_lambda * l2_loss
+
+        loss.backward()
         opt.step()
+
+        # loss_ema = loss_ema_beta * loss_ema + (1 - loss_ema_beta) * loss.item()
+        # curr_step_loss = loss_ema / (1 - loss_ema_beta ** (i + 1))
+        # pbar.set_description('loss: {:.4f}'.format(curr_step_loss))
+        # pbar.update(1)
 
     dl = torch.utils.data.DataLoader(
         torch.utils.data.TensorDataset(X_test, Y_test),

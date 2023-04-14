@@ -17,7 +17,8 @@ import library
 import driver
 import multiprocessing.dummy as mp
 
-import plot_utils
+if '--no-show' not in sys.argv:
+    import plot_utils
 
 import turaco
 
@@ -59,23 +60,20 @@ def get_theoretical_error(n_samples, complexity, c):
     # n_samples = int(np.ceil(n_samples))
     C = 1
     #  - np.log(1 - (1 - delta)**(1/c))
-    return np.sqrt(C * (complexity) / n_samples)
+    return np.sqrt(C * (complexity- np.log(1 - (1 - delta)**(1/c))) / n_samples)
 
 def get_empirical_error(prog_name_base, n_samples, no_train=False):
     losses = []
     fnames = []
     procs = []
 
+    if '--no-train' in sys.argv:
+        no_train = True
 
     if ':' in prog_name_base:
         prog_name_base, path_name = prog_name_base.split(':')
     else:
         path_name = 'all'
-
-    if 'jmeint' in prog_name_base and path_name == 'lllrrrrrlrrl' and n_samples == 35:
-        n_samples = 26
-    elif 'jmeint' in prog_name_base and path_name == 'lllrrrrlrrl' and n_samples == 35:
-        n_samples = 26
 
     new = False
     for i in range(N_TRIALS):
@@ -88,12 +86,22 @@ def get_empirical_error(prog_name_base, n_samples, no_train=False):
             continue
 
         new = True
-        args = [_PYTHON, 'driver.py', '--program', prog_name_base,
-             '--quiet',
-             'train',
-             '--n', str(n_samples), '--trial', str(i),
-             '--lr', '5e-5', '--steps', '10000',
-            ] + (['--path', path_name] if path_name != 'all' else [])
+        if any('jmeint' in s for s in sys.argv) and False:
+            args = [_PYTHON, 'driver.py', '--program', prog_name_base,
+                    '--quiet',
+                    'train',
+                    '--n', str(n_samples), '--trial', str(i),
+                    '--lr', '1e-3', '--steps', '1000',
+                    '--depth', '2',
+                    ] + (['--path', path_name] if path_name != 'all' else [])
+        else:
+            args = [_PYTHON, 'driver.py', '--program', prog_name_base,
+                    '--quiet',
+                    'train',
+                    '--n', str(n_samples), '--trial', str(i),
+                    '--lr', '5e-5', '--steps', '10000',
+                    '--depth', '1',
+                    ] + (['--path', path_name] if path_name != 'all' else [])
 
         proc = subprocess.Popen(
             args,
@@ -436,25 +444,28 @@ def main():
                     ax2.plot(m_xs, dist_errs[theo_idx], label='Optimal Sampling', ls=':', color=C[0])
 
                 if not args.no_frequency:
+                    # 1 - scipy.stats.mstats.gmean(domdf/dtmdf, axis=None)
                     frequency_mids = np.array([d[0] for d in test_errs[2]])
-                    imps = frequency_mids/mids
+                    imps = mids/frequency_mids
+                    imps = imps[~np.isnan(imps)]
+                    imps = imps[~np.isinf(imps)]
                     print('geomean improvement over frequency: {}'.format(
-                        np.exp(np.mean(np.log(imps))) - 1
+                        1 - np.exp(np.mean(np.log(imps)))
                     ))
-                    theo_imps = np.array(test_errs[theo_idx])/np.array(dist_errs[theo_idx])
+                    theo_imps = np.array(dist_errs[theo_idx]) / np.array(test_errs[theo_idx])
                     print('geomean improvement over frequency (theoretical): {}'.format(
-                        np.exp(np.mean(np.log(theo_imps))) - 1
+                        1 - np.exp(np.mean(np.log(theo_imps)))
                     ))
 
                 if not args.no_uniform:
                     uniform_mids = np.array([d[0] for d in uniform_errs[2]])
-                    imps = uniform_mids/mids
+                    imps = mids/uniform_mids
                     print('geomean improvement over uniform: {}'.format(
-                        np.exp(np.mean(np.log(imps)[1:])) - 1
+                        1 - np.exp(np.mean(np.log(imps)))
                     ))
-                    theo_imps = np.array(uniform_errs[theo_idx])/np.array(dist_errs[theo_idx])
+                    theo_imps = np.array(dist_errs[theo_idx]) / np.array(uniform_errs[theo_idx])
                     print('geomean improvement over uniform (theoretical): {}'.format(
-                        np.exp(np.mean(np.log(theo_imps))) - 1
+                        1 - np.exp(np.mean(np.log(theo_imps)))
                     ))
                 # print('median improvement over frequency (where ns < 70): {}'.format(
                 #     np.median(imps[mns < 70])
@@ -493,7 +504,8 @@ def main():
 
             fig.tight_layout()
 
-            plot_utils.format_axes(ax)
+            if not args.no_show:
+                plot_utils.format_axes(ax)
 
         if not args.no_analysis and not args.no_show:
             plt.figure()

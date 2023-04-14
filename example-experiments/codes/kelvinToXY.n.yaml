@@ -5,7 +5,7 @@ domains:
         x: [-1, 1]
         y: [-1, 1]
         invKiloK: [0, 1]
-        T: [0, 0.7] # really, to 0.5
+        T: [0.1, 0.5] # really, to 0.5
 
 beta: 1.0
 

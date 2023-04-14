@@ -29,6 +29,8 @@ def calculate_complexity(p: Program, max_scaling: Union[float, Mapping[str, inte
     if verbose:
         print('Result: {}'.format((a, b)))
 
+    a = 0
+
     return (bp + a)**2
 
 def _parse_ivalue(x: str) -> interpret.IValue:
