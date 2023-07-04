@@ -1,6 +1,6 @@
 # Turaco Language and Experiments
 
-This repository contains the implementation of the Turaco programming language and its analysis, and the experiments in Sections 2 and 5 of the paper "Optimal Data Sampling for Training Neural Surrogates of Programs".
+This repository contains the implementation of the Turaco programming language and its analysis, and the experiments in the paper "Turaco: Optimal Data Sampling for Training Neural Surrogates of Programs".
 
 ## Install
 
