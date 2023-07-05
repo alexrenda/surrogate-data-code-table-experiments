@@ -1,5 +1,0 @@
-fun (x) {
-  x = x * 10;
-  x = sin(x);
-  return x;
-}

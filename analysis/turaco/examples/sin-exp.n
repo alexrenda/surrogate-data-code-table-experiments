@@ -1,4 +1,0 @@
-fun (x) {
-  x := sin(x);
-  x := exp(x);
-} return x;
