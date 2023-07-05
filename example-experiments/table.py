@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 import driver
 import sys
 import subprocess
@@ -24,27 +25,36 @@ synthetic_benchmarks = [
 ]
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--frequency', action='store_true')
+    parser.add_argument('--synthetic', action='store_true')
+    args = parser.parse_args()
 
-    for (name, benchmarks) in [
-            ('real', real_benchmarks),
-            ('synthetic', synthetic_benchmarks),
-            ]:
+    if args.synthetic:
+        all_benchmarks = synthetic_benchmarks
+    else:
+        all_benchmarks = real_benchmarks
+
+    for (name, benchmarks) in all_benchmarks:
         print('=' * 80)
         print('\n' + name + '\n')
 
         print(r'\multirow{2}{1.5cm}{\bf Benchmark} & \multirow{2}{1.5cm}{\centering\textbf{Path}} & \multirow{2}{2cm}{\centering\textbf{Complexity}} & \multirow{2}{2cm}{\centering\bf Frequency \\ Distribution} & \multirow{2}{2cm}{\centering\bf Uniform \\ Distribution} & \multirow{2}{2cm}{\centering\bf Complexity \\ Distribution} \\&&&&\\ \midrule')
 
-        for i, (code, name) in enumerate(benchmarks):
-            output = subprocess.check_output([sys.executable, 'plot.py', '--program', code, '--no-theo', '--print-table'], stderr=subprocess.DEVNULL, universal_newlines=True)
-            print(r'\multirow{{{}}}{{1.5cm}}{{\bf\centering {}}}'.format(len(output.splitlines()), name))
-            print('\n'.join('& {}'.format(line) for line in output.splitlines()))
-            if i != len(benchmarks) - 1:
-                print(r'\midrule')
+        if args.frequency:
+            for i, (code, name) in enumerate(benchmarks):
+                output = subprocess.check_output([sys.executable, 'plot.py', '--program', code, '--no-theo', '--print-table'], stderr=subprocess.DEVNULL, universal_newlines=True)
+                print(r'\multirow{{{}}}{{1.5cm}}{{\bf\centering {}}}'.format(len(output.splitlines()), name))
+                print('\n'.join('& {}'.format(line) for line in output.splitlines()))
+                if i != len(benchmarks) - 1:
+                    print(r'\midrule')
 
-        print(r'\bottomrule')
-        print('\n\n\n')
-
-        # return
+            print(r'\bottomrule')
+            continue
+        else:
+            # make sure that the datasets are populated
+            for i, (code, name) in enumerate(benchmarks):
+                subprocess.check_output([sys.executable, 'plot.py', '--program', code, '--no-theo', '--print-table'], stderr=subprocess.DEVNULL, universal_newlines=True)
 
         data = {}
         def parse_line(text, string):
