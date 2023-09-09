@@ -1,4 +1,4 @@
-program: synthetic/dominant_simple_rare_complex.n
+program: synthetic/complexity_matters.n
 illegal_paths: []
 
 domains:

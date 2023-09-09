@@ -1,44 +1,80 @@
 # Artifact Documentation for Turaco: Complexity-Guided Data Sampling for Training Neural Surrogates of Programs
 
+This repository contains the implementation of the Turaco programming language and its analysis, and the experiments in the paper "Turaco: Complexity-Guided Data Sampling for Training Neural Surrogates of Programs".
+
 ## Installation
 
-TBD
+Requires Python >= 3.9.
+
+First create a virtual environment and install the requirements:
+```
+python -m venv env
+. env/bin/activate
+pip install -r requirements.txt
+```
+Then install Turaco:
+```
+pip install -e analysis
+```
+
+### Renderer
+
+The renderer example also requires the following dependencies:
+
+* g++ (GCC) 11.1.0
+* Panda3D 1.10.9
+* OpenGL version string: 4.6.0 NVIDIA 465.31
+
+The environment variables `P3D_INCLUDE_PATH` and `P3D_LIB_PATH` must be set to point to the Panda3D library.
 
 ## Artifact Contents
 
 * The Turaco language and analysis (`turaco/analysis/turaco`)
-* Code for experiments in Sections 2 and 7 (`turaco/example-experiments`) and Section 6 (`turaco/renderer-experiments`)
+* Code for experiments in Sections 2 and 5.1 (`turaco/example-experiments`) and Section 5.2 (`turaco/renderer-experiments`)
 
-## Kick-the-Tires Instructions
+### Computing Complexities
 
-TBD
+The `example-experiments` directory has several examples, including the examples from Sections 2 and 5.1.
 
-## Artifact Functional
+To run the standard interpretation of Turaco on a program, run:
+```
+python turaco/turaco.py --program {{PROGRAM_FILE}} interpret --input INPUT_NAME:INPUT_VALUE INPUT_NAME:INPUT_VALUE ...
+```
 
-Our artifact supports three main claims in the paper:
-1. **Evaluating Complexities and Distributions**: the Turaco analysis results in the complexities and corresponding sampling distributions reported in Tables 1 and 4 TBD AND IN SYNTH
-2. **Evaluating Accuracy Improvements**: the neural networks trained according to these distributions result in average empirical improvements in error reported in Tables 2 and 3 TBD AND IN SYNTH
-3. **Evaluating the Renderer**: the surrogates result in the renders observed in Figure 12.
+For example, to execute the example in Section 2 of the paper, run:
+```
+python turaco/turaco.py --program luminance.t interpret --input sunPosition:0.5 emission:0.2
+```
 
-### Evaluating Complexities and Distributions
+To run the complexity interpretation of Turaco on a program, run:
+```
+python turaco/turaco.py --program {{PROGRAM_FILE}} complexity --input BETA
+```
 
-TBD
+For example, to calculate the complexity of the daytime example in Section 2 of the paper, run
+```
+python turaco/turaco.py --program luminance.t complexity --input 1
+```
+
+### Computing Sampling Distributions
+
+The file `plot.py` in `example-experiments` contains utilities for computing the complexity-guided sampling distribution for a given program.
+
+For example:
+```
+python3 plot.py --program luminance.t --print-dist
+```
+will print the computed complexity of each path (as a dictionary labeled `Complexity`), then read the per-path frequency distribution from `luminance.t.yaml` and print the computed per-path sampling distribution (as a dictionary labeled `optimal`).
 
 ### Evaluating Accuracy Improvements
 
-We note that demonstrating point 2 above (reproducing Tables 2 and 3) requires training 41,600 neural networks. To support evaluation, we provide the full set of trained neural networks, instructions to perform a representative evaluation in one setting, and instructions to re-train all neural networks from scratch to perform the full evaluation.
+To support evaluation, we provide the full set of trained neural networks, instructions to perform a representative evaluation in one setting, and instructions to re-train all neural networks from scratch to perform the full evaluation.
 
 #### Evaluating Using Pre-Trained Networks
 
 This section shows how to use pre-trained networks to reproduce the results in the paper.
 
-##### Section 6: Renderer Demonstration
-
-The working directory for this experiment is `turaco/renderer-experiments`.
-
-TBD
-
-##### Section 7: Evaluation
+##### Section 5.1: Evaluation Across Programs
 
 The working directory for this experiment is `turaco/example-experiments`.
 
@@ -57,6 +93,12 @@ Jmeint & $176$ & $18$ & $2.34\%$ & $0.01\%$ & $8.44\%$ & $1.02\%$ \\
 Geomean & & & $3.33\%$ & $4.81\%$ & $4.33\%$ & $5.43\%$ \\
 \bottomrule
 ```
+
+##### Section 5.2: Renderer Demonstration
+
+The working directory for this experiment is `turaco/renderer-experiments`.
+
+TBD
 
 #### Representative Small-Scale Evaluation
 
@@ -105,7 +147,7 @@ Together, the error (according to the frequency distribution) of the complexity-
 
 #### Full Re-Training
 
-##### Section 6: Renderer Demonstration
+##### Section 5: Renderer Demonstration
 
 The working directory for this experiment is `turaco/renderer-experiments`.
 
@@ -113,7 +155,7 @@ For Table 2, to collect the datasets and train the neural networks from scratch,
 
 TBD
 
-##### Section 7: Evaluation
+##### Section 6: Evaluation
 
 The working directory for this experiment is `turaco/example-experiments`.
 
@@ -123,11 +165,32 @@ For Table 3, to train the neural networks from scratch, run `python3 table.py` (
 
 ### Evaluating the Renderer
 
+
+To run the examples in Section 5:
+```
+cd renderer-experiments
+pushd renderer
+./build.sh
+for s in base_day base_night top_day top_night; do ./run.sh --log --frames 100 --scene $s; done
+popd
+```
+Each scene will print out an identifier like `166XXXXXXXXXXXX`, which we will call `IDENTIFIER`. Copy `textures_IDENTIFIER` to `renderer-experiments/data/textures_IDENTIFIER`. Then:
+```
+python main.py --identifier IDENTIFIER dataset
+```
+To construct a stratified surrogate at a given number of data points:
+```
+python main.py --identifier IDENTIFIER --from 1 --to 6 --steps 20 generate --n NUMBER_OF_SAMPLES --trial 0 --type (optimal/test/uniform)
+```
+The above command writes a file `data/surrogates/(optimal/test/uniform)_NUMBER_OF_SAMPLES_0.data`, which we will call `SURROGATE_FILE`.
+To run this in the renderer:
+```
+cd renderer-experiments
+pushd renderer
+/run.sh --surrogate SURROGATE_FILE
+```
+
+
 To evaluate the renderer with a surrogate from TBD, run TBD
 
 The screenshots generated in the paper are generated by the pre-generated surrogates TBD.
-
-
-## Artifact Reusable
-
-The main point of reusability of our artifact is the Turaco programming language (

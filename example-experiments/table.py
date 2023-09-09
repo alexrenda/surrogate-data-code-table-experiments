@@ -27,15 +27,9 @@ synthetic_benchmarks = [
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--frequency', action='store_true')
-    parser.add_argument('--synthetic', action='store_true')
     args = parser.parse_args()
 
-    if args.synthetic:
-        all_benchmarks = synthetic_benchmarks
-    else:
-        all_benchmarks = real_benchmarks
-
-    for (name, benchmarks) in all_benchmarks:
+    for (name, benchmarks) in [('real', real_benchmarks), ('synthetic', synthetic_benchmarks)]:
         print('=' * 80)
         print('\n' + name + '\n')
 
